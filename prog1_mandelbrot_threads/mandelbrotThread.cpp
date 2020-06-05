@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <pthread.h>
-
+#include <algorithm>
 #include "CycleTimer.h"
 
 typedef struct {
@@ -31,10 +31,20 @@ void* workerThreadStart(void* threadArgs) {
 
     WorkerArgs* args = static_cast<WorkerArgs*>(threadArgs);
 
-    // TODO: Implement worker thread here.
+    int rowsPerThread = (args->height + args->numThreads - 1) / args->numThreads;
+    int startRow = args->threadId * rowsPerThread;
+    int totalRows = std::min(static_cast<int>(args->height),
+                             startRow + rowsPerThread) - startRow;
 
-    printf("Hello world from thread %d\n", args->threadId);
-
+    // (apeforest): Implement worker thread here.
+    mandelbrotSerial(
+        args->x0, args->y0, args->x1, args->y1,
+        args->width, args->height,
+        startRow, totalRows,
+        args->maxIterations,
+        args->output
+    );
+    printf("%d rows from thread %d\n", totalRows, args->threadId);
     return NULL;
 }
 
@@ -61,8 +71,17 @@ void mandelbrotThread(
     WorkerArgs args[MAX_THREADS];
 
     for (int i=0; i<numThreads; i++) {
-        // TODO: Set thread arguments here.
+        // (apeforest): Set thread arguments here.
         args[i].threadId = i;
+        args[i].x0 = x0;
+        args[i].x1 = x1;
+        args[i].y0 = y0;
+        args[i].y1 = y1;
+        args[i].width = width;
+        args[i].height = height;
+        args[i].maxIterations = maxIterations;
+        args[i].output = output;
+        args[i].numThreads = numThreads;
     }
 
     // Fire up the worker threads.  Note that numThreads-1 pthreads
